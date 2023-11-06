@@ -91,9 +91,7 @@ def generate_sql_date_query():
     SECOND_SHIFT_START = FIRST_SHIFT_END + 1    # 13:45:01
     SECOND_SHIFT_END = 21 * 3600 + 45 * 60      # 21:45:00
     
-    # Helper function to calculate overlapping seconds between two intervals
-    def get_overlapping_seconds(interval_start, interval_end, shift_start, shift_end):
-        return max(0, min(interval_end, shift_end) - max(interval_start, shift_start))
+    
 
     # Detect current shift
     if FIRST_SHIFT_START <= current_time_in_seconds <= FIRST_SHIFT_END:
@@ -134,8 +132,6 @@ def generate_sql_date_query():
 
     # Adjust for exclusion intervals
     total_excluded_seconds = 0
-    for start, end in EXCLUSION_INTERVALS:
-        total_excluded_seconds += get_overlapping_seconds(start, end, shift_start_date.second, shift_end_date.second)
 
     # Convert to string format
     shift_start_date_str = shift_start_date.strftime("%Y-%m-%d %H:%M:%S")
