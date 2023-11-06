@@ -91,15 +91,15 @@ def generate_sql_date_query():
     SECOND_SHIFT_START = FIRST_SHIFT_END + 1    # 13:45:01
     SECOND_SHIFT_END = 21 * 3600 + 45 * 60      # 21:45:00
     
-    
+    # Helper function to calculate overlapping seconds between two intervals
+    def get_overlapping_seconds(interval_start, interval_end, shift_start, shift_end):
+        return max(0, min(interval_end, shift_end) - max(interval_start, shift_start))
 
     def is_within_exclusion(current_seconds):
         for start, end in EXCLUSION_INTERVALS:
             if start <= current_seconds <= end:
                 return True
         return False
-    
-    
 
     # Detect current shift
     if FIRST_SHIFT_START <= current_time_in_seconds <= FIRST_SHIFT_END:
@@ -139,32 +139,16 @@ def generate_sql_date_query():
             shift_end_date = current_date
 
     # Adjust for exclusion intervals
-    if is_within_exclusion(current_time_in_seconds):
-        for start, end in EXCLUSION_INTERVALS:
-            if start <= current_time_in_seconds <= end:
-                shift_start_date = datetime.fromtimestamp(start).replace(year=current_date.year, month=current_date.month, day=current_date.day)
-                shift_end_date = datetime.fromtimestamp(end).replace(year=current_date.year, month=current_date.month, day=current_date.day)
-                break
-
-    # Convert to string format
-    shift_start_date_str = shift_start_date.strftime("%Y-%m-%d %H:%M:%S")
-    shift_end_date_str = shift_end_date.strftime("%Y-%m-%d %H:%M:%S")
-
-      # Adjust for exclusion intervals
     total_excluded_seconds = 0
     for start, end in EXCLUSION_INTERVALS:
-        if start <= current_time_in_seconds <= end:
-            total_excluded_seconds += end - start
-            shift_start_date += timedelta(seconds=(end - start))
-        if start <= shift_end_date.second <= end:
-            total_excluded_seconds += end - start
-            shift_end_date -= timedelta(seconds=(end - start))
+        total_excluded_seconds += get_overlapping_seconds(start, end, shift_start_date.second, shift_end_date.second)
 
     # Convert to string format
     shift_start_date_str = shift_start_date.strftime("%Y-%m-%d %H:%M:%S")
     shift_end_date_str = shift_end_date.strftime("%Y-%m-%d %H:%M:%S")
 
     return shift_start_date_str, shift_end_date_str, total_excluded_seconds
+
 
 
 
