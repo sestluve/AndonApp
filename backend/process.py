@@ -95,12 +95,6 @@ def generate_sql_date_query():
     def get_overlapping_seconds(interval_start, interval_end, shift_start, shift_end):
         return max(0, min(interval_end, shift_end) - max(interval_start, shift_start))
 
-    def is_within_exclusion(current_seconds):
-        for start, end in EXCLUSION_INTERVALS:
-            if start <= current_seconds <= end:
-                return True
-        return False
-
     # Detect current shift
     if FIRST_SHIFT_START <= current_time_in_seconds <= FIRST_SHIFT_END:
         shift = 1
@@ -155,7 +149,7 @@ def generate_sql_date_query():
 
 
 
-def compute_average_time_from_csv(sap_codes, csv_file):
+def count_time_by_sap_codes(sap_codes, csv_file):
     # Read the CSV file
     df = pd.read_csv(csv_file, sep=";")
 
@@ -170,16 +164,12 @@ def compute_average_time_from_csv(sap_codes, csv_file):
         if sap_code in df['code'].values:  # Check if SAP code exists in the CSV
             time_value = df[df['code'] == sap_code]['time'].values[0]  # retrieve time for the given SAP code
             print("Found time for SAP code " + sap_code + ": " + str(time_value))
-            total_seconds += time_value  # assuming the value is in minutes
+            total_seconds += (time_value * 60)  # assuming the value is in minutes
         else:
-            total_seconds += 3.5
+            total_seconds += (3.5 * 60)
         
 
-    if(len(sap_codes) != 0):
-        average_seconds = total_seconds / len(sap_codes)
-    else:
-        average_seconds = 0
-    return average_seconds
+    return total_seconds
 
 
 
@@ -206,6 +196,7 @@ def fetch_data():
 
     time_difference = end_time - start_time
     seconds_difference = time_difference.total_seconds() - total_excluded_seconds
+    print(f"Total excluded seconds: {total_excluded_seconds}")
 
     
 
@@ -230,9 +221,9 @@ def fetch_data():
     sap_codes = [row[5] for row in result]
     print(sap_codes)
     needed = 0
-    average_time = compute_average_time_from_csv(sap_codes, "T:\\codes.csv") * 60
-    if(average_time > 0):
-        needed = math.ceil(seconds_difference / average_time)
+    sap_codes_time = count_time_by_sap_codes(sap_codes, "T:\\codes.csv")
+    if(sap_codes_time > 0):
+        needed = math.ceil((seconds_difference / sap_codes_time) * result.__len__())
     return jsonify({"ok": result, "nok": result2, "needed": needed})
 
 
